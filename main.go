@@ -24,7 +24,7 @@ const (
 	// Embedding is the embedding size
 	Embedding = 2 * Width
 	// Factor is the gaussian factor
-	Factor = 0.05
+	Factor = 0.1
 	// Batch is the batch size
 	Batch = 16
 	// Networks is the number of networks
@@ -65,16 +65,16 @@ func main() {
 		E      tf64.Meta
 	}
 	networks := make([]Network, Networks)
-	drop := 0.1
+	/*drop := 0.9
 	dropout := map[string]interface{}{
 		"rng":  rng,
 		"drop": &drop,
-	}
+	}*/
 	for n := range networks {
 		set := tf64.NewSet()
-		set.Add("w1", Embedding, Embedding)
-		set.Add("b1", Embedding)
-		set.Add("w2", Embedding, Width)
+		set.Add("w1", Embedding, Width/2)
+		set.Add("b1", Width/2)
+		set.Add("w2", Width/2, Width)
 		set.Add("b2", Width)
 
 		for i := range set.Weights {
@@ -106,7 +106,7 @@ func main() {
 			w.X = w.X[:cap(w.X)]
 		}
 
-		l1 := tf64.Dropout(tf64.Sigmoid(tf64.Add(tf64.Mul(set.Get("w1"), others.Get("input")), set.Get("b1"))), dropout)
+		l1 := /*tf64.Dropout(*/ tf64.Sigmoid(tf64.Add(tf64.Mul(set.Get("w1"), others.Get("input")), set.Get("b1"))) /*, dropout)*/
 		l2 := tf64.Add(tf64.Mul(set.Get("w2"), l1), set.Get("b2"))
 		loss := tf64.Quadratic(l2, others.Get("output"))
 		v := tf64.Variance(loss)
