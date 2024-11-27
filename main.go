@@ -134,6 +134,7 @@ func main() {
 	points := make(plotter.XYs, 0, 8)
 	for i := 0; i < 4*33*len(data); i++ {
 		factor := Factor * math.Sin(2*math.Pi*float64(i)/256.0)
+		eta := Eta * math.Abs(math.Sin(2*math.Pi*float64(2*i)/256.0))
 		index := rng.Intn(len(data))
 		network, min := 0, math.MaxFloat64
 		for s := 0; s < Batch; s++ {
@@ -185,7 +186,7 @@ func main() {
 				if vhat < 0 {
 					vhat = 0
 				}
-				w.X[l] -= Eta * mhat / (math.Sqrt(vhat) + 1e-8)
+				w.X[l] -= eta * mhat / (math.Sqrt(vhat) + 1e-8)
 			}
 		}
 
