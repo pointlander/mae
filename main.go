@@ -24,7 +24,7 @@ const (
 	// Embedding is the embedding size
 	Embedding = 2 * Width
 	// Factor is the gaussian factor
-	Factor = 0.1
+	Factor = 0.07
 	// Batch is the batch size
 	Batch = 16
 	// Networks is the number of networks
@@ -133,10 +133,11 @@ func main() {
 
 	points := make(plotter.XYs, 0, 8)
 	for i := 0; i < 4*33*len(data); i++ {
+		factor := Factor * math.Sin(2*math.Pi*float64(i)/256.0)
 		index := rng.Intn(len(data))
 		network, min := 0, math.MaxFloat64
 		for s := 0; s < Batch; s++ {
-			transform := MakeRandomTransform(rng, Width, Embedding, Factor)
+			transform := MakeRandomTransform(rng, Width, Embedding, factor)
 			//offset := MakeRandomTransform(rng, Width, 1, Scale)
 			in := NewMatrix(Width, 1, data[index].Measures...)
 			in = transform.MulT(in) //.Add(offset).Softmax()
