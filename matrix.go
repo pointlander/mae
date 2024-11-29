@@ -82,10 +82,11 @@ func (m Matrix) Add(n Matrix) Matrix {
 	return o
 }
 
-func (m Matrix) Softmax() Matrix {
+func (m Matrix) Softmax(T float64) Matrix {
 	output := NewMatrix(m.Cols, m.Rows)
 	max := 0.0
 	for _, v := range m.Data {
+		v /= T
 		if v > max {
 			max = v
 		}
@@ -94,7 +95,7 @@ func (m Matrix) Softmax() Matrix {
 	sum := 0.0
 	values := make([]float64, len(m.Data))
 	for j, value := range m.Data {
-		values[j] = math.Exp(value - s)
+		values[j] = math.Exp(value/T - s)
 		sum += values[j]
 	}
 	for _, value := range values {
@@ -168,9 +169,9 @@ func MakeRandomTransform(rng *rand.Rand, cols, rows int, stddev float64) Matrix 
 	for i := 0; i < rows; i++ {
 		row := NewMatrix(cols, 1)
 		for j := 0; j < cols; j++ {
-			row.Data = append(row.Data, math.Abs(rng.NormFloat64())*stddev)
+			row.Data = append(row.Data, math.Abs(rng.NormFloat64()))
 		}
-		row = row.Softmax()
+		row = row.Softmax(stddev)
 		for _, v := range row.Data {
 			transform.Data = append(transform.Data, v)
 		}

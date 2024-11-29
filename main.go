@@ -24,7 +24,7 @@ const (
 	// Embedding is the embedding size
 	Embedding = 2 * Width
 	// Factor is the gaussian factor
-	Factor = 0.07
+	Factor = 10000
 	// Batch is the batch size
 	Batch = 16
 	// Networks is the number of networks
@@ -133,7 +133,7 @@ func main() {
 
 	points := make(plotter.XYs, 0, 8)
 	for i := 0; i < 4*33*len(data); i++ {
-		factor := Factor * math.Sin(2*math.Pi*float64(i)/256.0)
+		factor := Factor*math.Sin(2*math.Pi*float64(i)/256.0) + Factor + .01
 		eta := Eta * math.Abs(math.Sin(2*math.Pi*float64(2*i)/256.0))
 		index := rng.Intn(len(data))
 		network, min := 0, math.MaxFloat64
