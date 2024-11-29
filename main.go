@@ -37,7 +37,7 @@ const (
 	// B2 exponential decay rate for the second-moment estimates
 	B2 = 0.89
 	// Eta is the learning rate
-	Eta = .01
+	Eta = 0.01
 )
 
 const (
@@ -133,7 +133,7 @@ func main() {
 
 	points := make(plotter.XYs, 0, 8)
 	for i := 0; i < 4*33*len(data); i++ {
-		factor := Factor*math.Sin(2*math.Pi*float64(i)/256.0) + Factor + .01
+		factor := Factor*math.Sin(2*math.Pi*float64(i)/256.0) + Factor + 0.1
 		eta := Eta * math.Abs(math.Sin(2*math.Pi*float64(2*i)/256.0))
 		index := rng.Intn(len(data))
 		network, min := 0, math.MaxFloat64
