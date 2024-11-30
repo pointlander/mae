@@ -22,7 +22,7 @@ type Fisher struct {
 	Label    string
 	Index    int
 	S        float64
-	Votes    [3]int
+	Votes    [Networks]int
 }
 
 // Labels maps iris labels to ints

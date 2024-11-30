@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"sort"
 	"strings"
 
 	"github.com/pointlander/gradient/tf64"
@@ -28,7 +29,7 @@ const (
 	// Batch is the batch size
 	Batch = 16
 	// Networks is the number of networks
-	Networks = 3
+	Networks = 9
 )
 
 const (
@@ -131,12 +132,16 @@ func main() {
 		return y
 	}
 
+	type Loss struct {
+		Network int
+		Loss    float64
+	}
+
 	points := make(plotter.XYs, 0, 8)
 	for i := 0; i < 4*33*len(data); i++ {
 		factor := Factor*math.Sin(2*math.Pi*float64(i)/256.0) + Factor + 0.1
 		eta := Eta*math.Sin(2*math.Pi*float64(2*i)/256.0) + Eta
 		index := rng.Intn(len(data))
-		network, min := 0, math.MaxFloat64
 		for s := 0; s < Batch; s++ {
 			transform := MakeRandomTransform(rng, Width, Embedding, factor)
 			//offset := MakeRandomTransform(rng, Width, 1, Scale)
@@ -147,58 +152,63 @@ func main() {
 				copy(networks[n].Others.ByName["output"].X[s*Width:(s+1)*Width], data[index].Measures)
 			}
 		}
+		losses := make([]Loss, Networks)
 		for n := range networks {
 			networks[n].Others.Zero()
 			networks[n].VV(func(a *tf64.V) bool {
-				if a.X[0] < min {
-					min, network = a.X[0], n
-				}
+				losses[n].Network = n
+				losses[n].Loss = a.X[0]
 				return true
 			})
 		}
 
-		networks[network].Others.Zero()
+		sort.Slice(losses, func(i, j int) bool {
+			return losses[i].Loss < losses[j].Loss
+		})
 
-		networks[network].Set.Zero()
-		cost := tf64.Gradient(networks[network].Loss).X[0]
+		for _, loss := range losses[:3] {
+			network := loss.Network
+			networks[network].Others.Zero()
+			networks[network].Set.Zero()
+			cost := tf64.Gradient(networks[network].Loss).X[0]
 
-		norm := 0.0
-		for _, p := range networks[network].Set.Weights {
-			for _, d := range p.D {
-				norm += d * d
-			}
-		}
-		norm = math.Sqrt(norm)
-		b1, b2 := pow(B1, networks[network].I), pow(B2, networks[network].I)
-		scaling := 1.0
-		if norm > 1 {
-			scaling = 1 / norm
-		}
-		for _, w := range networks[network].Set.Weights {
-			for l, d := range w.D {
-				g := d * scaling
-				m := B1*w.States[StateM][l] + (1-B1)*g
-				v := B2*w.States[StateV][l] + (1-B2)*g*g
-				w.States[StateM][l] = m
-				w.States[StateV][l] = v
-				mhat := m / (1 - b1)
-				vhat := v / (1 - b2)
-				if vhat < 0 {
-					vhat = 0
+			norm := 0.0
+			for _, p := range networks[network].Set.Weights {
+				for _, d := range p.D {
+					norm += d * d
 				}
-				w.X[l] -= eta * mhat / (math.Sqrt(vhat) + 1e-8)
 			}
-		}
+			norm = math.Sqrt(norm)
+			b1, b2 := pow(B1, networks[network].I), pow(B2, networks[network].I)
+			scaling := 1.0
+			if norm > 1 {
+				scaling = 1 / norm
+			}
+			for _, w := range networks[network].Set.Weights {
+				for l, d := range w.D {
+					g := d * scaling
+					m := B1*w.States[StateM][l] + (1-B1)*g
+					v := B2*w.States[StateV][l] + (1-B2)*g*g
+					w.States[StateM][l] = m
+					w.States[StateV][l] = v
+					mhat := m / (1 - b1)
+					vhat := v / (1 - b2)
+					if vhat < 0 {
+						vhat = 0
+					}
+					w.X[l] -= eta * mhat / (math.Sqrt(vhat) + 1e-8)
+				}
+			}
 
-		points = append(points, plotter.XY{X: float64(i), Y: float64(cost)})
-		networks[network].I++
+			points = append(points, plotter.XY{X: float64(i), Y: float64(cost)})
+			networks[network].I++
+		}
 	}
 
 	histogram := [3][Networks]float64{}
 	for shot := 0; shot < 33; shot++ {
 		for range data {
 			index := rng.Intn(len(data))
-			network, min := 0, math.MaxFloat64
 			for s := 0; s < Batch; s++ {
 				transform := MakeRandomTransform(rng, Width, Embedding, Factor)
 				//offset := MakeRandomTransform(rng, Width, 1, Scale)
@@ -209,16 +219,23 @@ func main() {
 					copy(networks[n].Others.ByName["output"].X[s*Width:(s+1)*Width], data[index].Measures)
 				}
 			}
+			losses := make([]Loss, Networks)
 			for n := range networks {
 				networks[n].Others.Zero()
 				networks[n].VV(func(a *tf64.V) bool {
-					if a.X[0] < min {
-						min, network = a.X[0], n
-					}
+					losses[n].Network = n
+					losses[n].Loss = a.X[0]
 					return true
 				})
 			}
-			data[index].Votes[network]++
+
+			sort.Slice(losses, func(i, j int) bool {
+				return losses[i].Loss < losses[j].Loss
+			})
+
+			for _, loss := range losses[:3] {
+				data[index].Votes[loss.Network]++
+			}
 		}
 	}
 	for _, item := range data {
